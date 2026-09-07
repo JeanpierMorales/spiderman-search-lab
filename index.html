@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080d1c" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23ee3047' d='M32 3 54 17l-5 31-17 13-17-13-5-31L32 3Z'/%3E%3Cpath fill='%23fff' d='m17 20 13 8-10 15-6-4 3-19Zm30 0-13 8 10 15 6-4-3-19Z'/%3E%3C/svg%3E" />
+    <meta
+      name="description"
+      content="Juego educativo de Spider-Man para comparar DFS, BFS y A* en cinco escenarios de búsqueda."
+    />
+    <title>Spider-Man Search Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bangers&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!--
+      THESIS: La frontera de búsqueda invade la ciudad y vuelve visible cada decisión; evita el dashboard de tarjetas uniformes.
+      OWN-WORLD: Tinta azul nocturna, rojo arácnido, amarillo de alerta, tramas de semitono y marcos angulares de cómic.
+      STORY: Elegir una misión, ejecutar un agente, observar su frontera y defender con datos cuál conviene.
+      FIRST VIEWPORT: Tablero urbano dominante a la izquierda; controles y estructura viva apilados a la derecha; ejecución primaria siempre visible.
+      FORM: Laboratorio-misión de cómic, dirección fijada por la referencia del usuario; seed key user-pinned-comic-lab.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+    -->
+    <div class="halftone" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#arena" aria-label="Ir al tablero de misión">
+        <svg class="brand-mask" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 3 40 13l-3 23-13 9-13-9-3-23L24 3Z" fill="currentColor" />
+          <path d="m12 15 10 5-7 11-4-3 1-13Zm24 0-10 5 7 11 4-3-1-13Z" fill="#f7f4e8" />
+          <path d="M24 5v37M10 15h28M14 35l10-13 10 13" fill="none" stroke="#101a36" stroke-width="1.4" />
+        </svg>
+        <span>
+          <strong>SPIDER-MAN</strong>
+          <small>SEARCH LAB</small>
+        </span>
+      </a>
+
+      <nav class="chapter-nav" aria-label="Secciones del proyecto">
+        <a class="active" href="#arena">Misión</a>
+        <a href="#peas">PEAS</a>
+        <a href="#comparison">Resultados</a>
+      </nav>
+
+      <div class="live-badge"><span></span> Simulación local</div>
+    </header>
+
+    <main>
+      <section id="arena" class="mission-shell" aria-labelledby="mission-title">
+        <div class="mission-head">
+          <div>
+            <p class="location" id="scenario-kicker">MISIÓN 01 · AZOTEAS ABIERTAS</p>
+            <h1 id="mission-title">Rescate sobre Manhattan</h1>
+          </div>
+          <p class="mission-brief" id="scenario-description">
+            Llega a la baliza y observa cómo cada estrategia decide qué azotea explorar.
+          </p>
+        </div>
+
+        <div class="mission-grid">
+          <div class="city-stage">
+            <div class="metric-ribbon" aria-live="polite">
+              <div><span>Agente</span><strong id="metric-algorithm">A*</strong></div>
+              <div><span>Nodos</span><strong id="metric-nodes">0</strong></div>
+              <div><span>Costo</span><strong id="metric-cost">···</strong></div>
+              <div><span>Pasos</span><strong id="metric-steps">···</strong></div>
+              <div><span>Tiempo</span><strong id="metric-time">0.00 ms</strong></div>
+            </div>
+
+            <div class="canvas-wrap">
+              <canvas id="city-canvas" width="1150" height="750" aria-label="Mapa de azoteas para la misión"></canvas>
+              <div class="canvas-caption">
+                <span><i class="legend-swatch normal"></i> Azotea · costo 1</span>
+                <span><i class="legend-swatch rubble"></i> Escombros · costo 4</span>
+                <span><i class="legend-swatch explored"></i> Explorado</span>
+                <span><i class="legend-swatch route"></i> Ruta final</span>
+              </div>
+              <div id="mission-callout" class="mission-callout" aria-live="polite">
+                <strong>LISTO PARA PATRULLAR</strong>
+                <span>Selecciona un algoritmo y ejecuta la búsqueda.</span>
+              </div>
+            </div>
+
+            <div class="timeline" aria-label="Progreso de la búsqueda">
+              <span>INICIO</span>
+              <div class="timeline-track"><i id="timeline-progress"></i></div>
+              <span>RESCATE</span>
+            </div>
+          </div>
+
+          <aside class="control-rail" aria-label="Controles y explicación del algoritmo">
+            <section class="rail-section agent-panel">
+              <div class="section-heading">
+                <h2>Elige al agente</h2>
+                <button class="info-dot" type="button" data-tip="Los tres reciben exactamente el mismo mapa y orden de vecinos." aria-label="Información sobre los agentes">i</button>
+              </div>
+              <div class="segmented" role="group" aria-label="Algoritmo de búsqueda">
+                <button type="button" data-algorithm="dfs">DFS</button>
+                <button type="button" data-algorithm="bfs">BFS</button>
+                <button class="selected" type="button" data-algorithm="astar">A*</button>
+                <button type="button" data-algorithm="manual">Manual</button>
+              </div>
+              <div class="algorithm-summary">
+                <span id="structure-chip">PRIORIDAD · menor f</span>
+                <p id="algorithm-explanation">Combina el costo recorrido con la distancia estimada a la baliza.</p>
+              </div>
+              <label class="speed-control">
+                <span>Velocidad de exploración</span>
+                <input id="speed-range" type="range" min="1" max="100" value="68" />
+              </label>
+              <div id="manual-controls" class="manual-controls" hidden>
+                <p>Usa flechas, WASD o los controles táctiles.</p>
+                <div class="d-pad" aria-label="Controles manuales">
+                  <button type="button" data-move="up" aria-label="Mover arriba">↑</button>
+                  <button type="button" data-move="left" aria-label="Mover a la izquierda">←</button>
+                  <button type="button" data-move="down" aria-label="Mover abajo">↓</button>
+                  <button type="button" data-move="right" aria-label="Mover a la derecha">→</button>
+                </div>
+              </div>
+              <div class="action-pair">
+                <button id="run-button" class="primary-action" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z" /></svg>
+                  Ejecutar <span id="run-label">A*</span>
+                </button>
+                <button id="reset-button" class="icon-action" type="button" aria-label="Reiniciar misión">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" /></svg>
+                </button>
+              </div>
+            </section>
+
+            <section class="rail-section scenario-panel">
+              <div class="section-heading"><h2>Escenario</h2><span id="scenario-count">1 / 5</span></div>
+              <select id="scenario-select" aria-label="Seleccionar escenario"></select>
+              <div class="scenario-nav">
+                <button id="previous-scenario" type="button" aria-label="Escenario anterior">←</button>
+                <button id="next-scenario" type="button">Siguiente misión →</button>
+              </div>
+            </section>
+
+            <section class="rail-section frontier-panel">
+              <div class="section-heading">
+                <h2>Frontera en vivo</h2>
+                <span id="frontier-kind">COLA DE PRIORIDAD</span>
+              </div>
+              <div class="frontier-head"><span>NODO</span><span id="frontier-columns">g · h · f</span></div>
+              <ol id="frontier-list" class="frontier-list">
+                <li class="empty-frontier">La estructura aparecerá al ejecutar.</li>
+              </ol>
+            </section>
+
+            <section class="rail-section code-panel">
+              <div class="section-heading"><h2>Qué ocurre</h2><span id="code-step-label">EN ESPERA</span></div>
+              <pre id="pseudocode" aria-label="Pseudocódigo del algoritmo"></pre>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="peas" class="intel-section" aria-labelledby="peas-title">
+        <div class="intel-intro">
+          <p>MODELO DEL AGENTE</p>
+          <h2 id="peas-title">PEAS del rescate arácnido</h2>
+          <p>El agente conoce el mapa completo. El entorno es discreto, determinista, estático y totalmente observable.</p>
+        </div>
+        <div class="peas-grid">
+          <article><b>P</b><h3>Rendimiento</h3><p>Rescatar a la persona, minimizar el costo total y reducir los nodos expandidos.</p></article>
+          <article><b>E</b><h3>Entorno</h3><p>Azoteas, edificios bloqueados, escombros de costo 4, inicio y baliza de rescate.</p></article>
+          <article><b>A</b><h3>Actuadores</h3><p>Balancearse una casilla arriba, derecha, abajo o izquierda. No hay diagonales.</p></article>
+          <article><b>S</b><h3>Sensores</h3><p>Posición actual, baliza, límites, transitabilidad y costo de cada azotea.</p></article>
+        </div>
+
+        <div class="model-strip" aria-label="Modelado del problema de búsqueda">
+          <div><span>ESTADO</span><strong>Posición (fila, columna)</strong></div>
+          <div><span>ACCIONES</span><strong>↑ → ↓ ←</strong></div>
+          <div><span>COSTO</span><strong>1 normal · 4 escombros</strong></div>
+          <div><span>HEURÍSTICA</span><strong>Distancia Manhattan × 1</strong></div>
+        </div>
+      </section>
+
+      <section id="comparison" class="comparison-section" aria-labelledby="comparison-title">
+        <div class="comparison-copy">
+          <p>PRUEBA CONTROLADA</p>
+          <h2 id="comparison-title">Los mismos cinco mapas. Tres formas de decidir.</h2>
+          <p>
+            La medición excluye la animación. Cada algoritmo usa el mismo orden de vecinos y cada tiempo es el promedio de varias ejecuciones para evitar lecturas de 0 ms.
+          </p>
+          <button id="benchmark-button" class="benchmark-action" type="button">Correr los 3 en 5 escenarios</button>
+        </div>
+
+        <div class="results-sheet">
+          <div class="sheet-title">
+            <span>INFORME AUTOMÁTICO</span>
+            <strong id="benchmark-status">Datos pendientes</strong>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Algoritmo</th>
+                  <th>Nodos expandidos<br /><small>prom.</small></th>
+                  <th>Costo solución<br /><small>prom.</small></th>
+                  <th>Tiempo<br /><small>ms</small></th>
+                  <th>Veredicto</th>
+                </tr>
+              </thead>
+              <tbody id="results-body">
+                <tr><th>DFS</th><td data-label="Nodos prom.">···</td><td data-label="Costo prom.">···</td><td data-label="Tiempo">···</td><td data-label="Veredicto">Sin medir</td></tr>
+                <tr><th>BFS</th><td data-label="Nodos prom.">···</td><td data-label="Costo prom.">···</td><td data-label="Tiempo">···</td><td data-label="Veredicto">Sin medir</td></tr>
+                <tr><th>A*</th><td data-label="Nodos prom.">···</td><td data-label="Costo prom.">···</td><td data-label="Tiempo">···</td><td data-label="Veredicto">Sin medir</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="final-verdict" class="final-verdict">
+            Ejecuta la prueba para generar una conclusión basada en tus propios datos.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <strong>SPIDER-MAN SEARCH LAB</strong>
+      <span>Proyecto de Agentes Inteligentes · DFS · BFS · A*</span>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

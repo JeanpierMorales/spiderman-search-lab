@@ -45,7 +45,9 @@
       <nav class="chapter-nav" aria-label="Secciones del proyecto">
         <a class="active" href="#arena">Misión</a>
         <a href="#peas">PEAS</a>
-        <a href="#comparison">Resultados</a>
+        <a href="#hunt">Cacería</a>
+        <a href="#race">Carrera</a>
+        <a href="#tournament">Torneo · Resultados</a>
       </nav>
 
       <div class="live-badge"><span></span> Simulación local</div>
@@ -59,7 +61,7 @@
             <h1 id="mission-title">Rescate sobre Manhattan</h1>
           </div>
           <p class="mission-brief" id="scenario-description">
-            Llega a la baliza y observa cómo cada estrategia decide qué azotea explorar.
+            Rescata a Mary Jane balanceándote entre anclajes. Cada telaraña cuesta su distancia; observa cómo cada estrategia decide a qué azotea saltar.
           </p>
         </div>
 
@@ -74,12 +76,13 @@
             </div>
 
             <div class="canvas-wrap">
-              <canvas id="city-canvas" width="1150" height="750" aria-label="Mapa de azoteas para la misión"></canvas>
+              <canvas id="city-canvas" width="1150" height="750" aria-label="Skyline de anclajes para la misión"></canvas>
               <div class="canvas-caption">
-                <span><i class="legend-swatch normal"></i> Azotea · costo 1</span>
-                <span><i class="legend-swatch rubble"></i> Escombros · costo 4</span>
+                <span><i class="legend-swatch normal"></i> Anclaje · telaraña = distancia</span>
+                <span><i class="legend-swatch rubble"></i> <span id="legend-rubble">Zona de bombas · costo ×3</span></span>
                 <span><i class="legend-swatch explored"></i> Explorado</span>
                 <span><i class="legend-swatch route"></i> Ruta final</span>
+                <span>👺 Duende · 🔴 MJ</span>
               </div>
               <div id="mission-callout" class="mission-callout" aria-live="polite">
                 <strong>LISTO PARA PATRULLAR</strong>
@@ -90,7 +93,7 @@
             <div class="timeline" aria-label="Progreso de la búsqueda">
               <span>INICIO</span>
               <div class="timeline-track"><i id="timeline-progress"></i></div>
-              <span>RESCATE</span>
+              <span>MJ</span>
             </div>
           </div>
 
@@ -108,14 +111,20 @@
               </div>
               <div class="algorithm-summary">
                 <span id="structure-chip">PRIORIDAD · menor f</span>
-                <p id="algorithm-explanation">Combina el costo recorrido con la distancia estimada a la baliza.</p>
+                <p id="algorithm-explanation">Combina el costo recorrido con la distancia estimada hasta MJ.</p>
               </div>
               <label class="speed-control">
                 <span>Velocidad de exploración</span>
                 <input id="speed-range" type="range" min="1" max="100" value="68" />
               </label>
+              <div class="option-row" aria-label="Opciones de visualización">
+                <label><input id="opt-fog" type="checkbox" /> Niebla</label>
+                <label><input id="opt-graph" type="checkbox" /> Ver árbol de búsqueda</label>
+                <label><input id="opt-f" type="checkbox" /> Ver f=g+h</label>
+                <label><input id="opt-sound" type="checkbox" /> Sonido</label>
+              </div>
               <div id="manual-controls" class="manual-controls" hidden>
-                <p>Usa flechas, WASD o los controles táctiles.</p>
+                <p>Flechas, WASD, controles táctiles o clic sobre un anclaje vecino.</p>
                 <div class="d-pad" aria-label="Controles manuales">
                   <button type="button" data-move="up" aria-label="Mover arriba">↑</button>
                   <button type="button" data-move="left" aria-label="Mover a la izquierda">←</button>
@@ -132,6 +141,40 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" /></svg>
                 </button>
               </div>
+            </section>
+
+            <section class="rail-section stats-panel">
+              <div class="section-heading">
+                <h2>Estadísticas</h2>
+                <button class="info-dot" type="button" data-tip="Métricas del algoritmo activo. Se actualizan en vivo durante la exploración." aria-label="Información sobre estadísticas">i</button>
+              </div>
+              <div class="stats-grid" aria-live="polite">
+                <div><strong id="stat-expanded">0</strong><span>Nodos expandidos</span></div>
+                <div><strong id="stat-generated">0</strong><span>Nodos generados</span></div>
+                <div><strong id="stat-frontier">0</strong><span>Frontera máxima (memoria)</span></div>
+                <div><strong id="stat-length">···</strong><span>Longitud del camino</span></div>
+                <div><strong id="stat-cost">···</strong><span>Costo del camino</span></div>
+                <div><strong id="stat-efficiency">···</strong><span>Eficiencia camino/expandidos</span></div>
+                <div><strong id="stat-branching">···</strong><span>Factor de ramificación b*</span></div>
+                <div><strong id="stat-time">0.0 ms</strong><span>Tiempo de cómputo</span></div>
+              </div>
+              <p id="stat-verdict" class="stat-verdict">Ejecuta un agente para ver el veredicto.</p>
+            </section>
+
+            <section class="rail-section terrain-panel">
+              <div class="section-heading">
+                <h2>Terreno</h2>
+                <button class="info-dot" type="button" data-tip="Las bombas del Duende multiplican el costo de las telarañas que las cruzan. BFS las ignora; A* las cuenta." aria-label="Información sobre terreno">i</button>
+              </div>
+              <select id="terrain-select" aria-label="Tipo de terreno">
+                <option value="on" selected>Con bombas calabaza — cruzar cuesta más</option>
+                <option value="off">Sin bombas — solo distancia</option>
+              </select>
+              <label class="speed-control rubble-control">
+                <span>Costo en zona de bombas <b id="rubble-value">×3</b></span>
+                <input id="rubble-range" type="range" min="2" max="6" value="3" />
+              </label>
+              <p id="terrain-note" class="terrain-note"></p>
             </section>
 
             <section class="rail-section scenario-panel">
@@ -155,8 +198,8 @@
             </section>
 
             <section class="rail-section code-panel">
-              <div class="section-heading"><h2>Qué ocurre</h2><span id="code-step-label">EN ESPERA</span></div>
-              <pre id="pseudocode" aria-label="Pseudocódigo del algoritmo"></pre>
+              <div class="section-heading"><h2>El algoritmo, línea por línea</h2><span id="code-step-label">EN ESPERA</span></div>
+              <ol id="pseudocode" class="pseudocode" aria-label="Pseudocódigo del algoritmo"></ol>
             </section>
           </aside>
         </div>
@@ -166,59 +209,110 @@
         <div class="intel-intro">
           <p>MODELO DEL AGENTE</p>
           <h2 id="peas-title">PEAS del rescate arácnido</h2>
-          <p>El agente conoce el mapa completo. El entorno es discreto, determinista, estático y totalmente observable.</p>
+          <p>El agente conoce el grafo completo de anclajes. El entorno es discreto, determinista, estático y totalmente observable.</p>
         </div>
         <div class="peas-grid">
-          <article><b>P</b><h3>Rendimiento</h3><p>Rescatar a la persona, minimizar el costo total y reducir los nodos expandidos.</p></article>
-          <article><b>E</b><h3>Entorno</h3><p>Azoteas, edificios bloqueados, escombros de costo 4, inicio y baliza de rescate.</p></article>
-          <article><b>A</b><h3>Actuadores</h3><p>Balancearse una casilla arriba, derecha, abajo o izquierda. No hay diagonales.</p></article>
-          <article><b>S</b><h3>Sensores</h3><p>Posición actual, baliza, límites, transitabilidad y costo de cada azotea.</p></article>
+          <article><b>P</b><h3>Rendimiento</h3><p>Rescatar a MJ, minimizar la distancia total recorrida y reducir los anclajes expandidos.</p></article>
+          <article><b>E</b><h3>Entorno</h3><p>Skyline de Manhattan: anclajes en azoteas, fachadas y antenas, telarañas posibles entre ellos, zonas de bombas calabaza y MJ cautiva por el Duende Verde.</p></article>
+          <article><b>A</b><h3>Actuadores</h3><p>Lanzar una telaraña a cualquier anclaje conectado con el actual y balancearse hasta él.</p></article>
+          <article><b>S</b><h3>Sensores</h3><p>Anclaje actual, posición de MJ, telarañas disponibles, su longitud y si cruzan una zona de bombas.</p></article>
         </div>
 
         <div class="model-strip" aria-label="Modelado del problema de búsqueda">
-          <div><span>ESTADO</span><strong>Posición (fila, columna)</strong></div>
-          <div><span>ACCIONES</span><strong>↑ → ↓ ←</strong></div>
-          <div><span>COSTO</span><strong>1 normal · 4 escombros</strong></div>
-          <div><span>HEURÍSTICA</span><strong>Distancia Manhattan × 1</strong></div>
+          <div><span>ESTADO</span><strong>Anclaje actual (nodo del grafo)</strong></div>
+          <div><span>ACCIONES</span><strong>Saltar a un anclaje vecino</strong></div>
+          <div><span>COSTO</span><strong>Distancia · ×k en zona de bombas</strong></div>
+          <div><span>HEURÍSTICA</span><strong>Distancia en línea recta</strong></div>
         </div>
       </section>
 
-      <section id="comparison" class="comparison-section" aria-labelledby="comparison-title">
-        <div class="comparison-copy">
-          <p>PRUEBA CONTROLADA</p>
-          <h2 id="comparison-title">Los mismos cinco mapas. Tres formas de decidir.</h2>
-          <p>
-            La medición excluye la animación. Cada algoritmo usa el mismo orden de vecinos y cada tiempo es el promedio de varias ejecuciones para evitar lecturas de 0 ms.
-          </p>
-          <button id="benchmark-button" class="benchmark-action" type="button">Correr los 3 en 5 escenarios</button>
+      <section id="hunt" class="mode-section" aria-labelledby="hunt-title">
+        <div class="intel-intro">
+          <p>PROBLEMA DINÁMICO</p>
+          <h2 id="hunt-title">Cacería: el Duende huye con MJ</h2>
+          <p>Aquí la meta se mueve. El Duende Verde salta de azotea en azotea con MJ y el plan de Spider-Man queda obsoleto: hay que replanificar. Es el salto del problema estático al dinámico.</p>
         </div>
-
-        <div class="results-sheet">
-          <div class="sheet-title">
-            <span>INFORME AUTOMÁTICO</span>
-            <strong id="benchmark-status">Datos pendientes</strong>
+        <div class="mode-grid">
+          <div class="mode-stage">
+            <div class="metric-ribbon">
+              <div><span>Turno</span><strong id="hunt-turn">0</strong></div>
+              <div><span>Replanificaciones</span><strong id="hunt-replans">0</strong></div>
+              <div><span>Nodos totales</span><strong id="hunt-nodes">0</strong></div>
+              <div><span>Distancia</span><strong id="hunt-distance">···</strong></div>
+              <div><span>Capturas</span><strong id="hunt-captures">0</strong></div>
+            </div>
+            <canvas id="hunt-canvas" width="1150" height="750" aria-label="Mapa de la cacería"></canvas>
+            <div id="hunt-status" class="mode-status">Pulsa «Iniciar cacería».</div>
           </div>
+          <aside class="mode-rail">
+            <section class="rail-section">
+              <div class="section-heading"><h2>Configuración</h2></div>
+              <div class="segmented" role="group" aria-label="Algoritmo de la cacería">
+                <button type="button" data-hunt-algorithm="dfs">DFS</button>
+                <button type="button" data-hunt-algorithm="bfs">BFS</button>
+                <button class="selected" type="button" data-hunt-algorithm="astar">A*</button>
+              </div>
+              <label class="field"><span>Comportamiento del Duende</span>
+                <select id="hunt-behavior"><option value="flee" selected>Huye de Spider-Man</option><option value="random">Se mueve al azar</option><option value="still">Se queda quieto</option></select></label>
+              <label class="field"><span>Estrategia de replanificación</span>
+                <select id="hunt-strategy"><option value="broken" selected>Replanificar solo si el plan se rompe</option><option value="always">Replanificar cada turno</option></select></label>
+              <label class="field"><span>Ritmo Spider-Man : Duende</span>
+                <select id="hunt-ratio"><option value="1">1 : 1</option><option value="2" selected>2 : 1</option><option value="3">3 : 1</option></select></label>
+              <label class="speed-control"><span>Velocidad</span><input id="hunt-speed" type="range" min="1" max="20" value="5" /></label>
+              <label class="option-row"><input id="hunt-show-explored" type="checkbox" checked /> Ver nodos explorados</label>
+              <div class="action-pair">
+                <button id="hunt-start" class="primary-action" type="button">Iniciar cacería</button>
+                <button id="hunt-reset" class="icon-action" type="button" aria-label="Reiniciar cacería">↺</button>
+              </div>
+            </section>
+            <section class="rail-section">
+              <div class="section-heading"><h2>Comparativa de estrategias</h2></div>
+              <div class="table-wrap dark-table">
+                <table><thead><tr><th>Agente</th><th>Estrategia</th><th>Replan.</th><th>Nodos</th><th>Turnos</th></tr></thead>
+                <tbody id="hunt-table"><tr><td colspan="5">Cada captura agrega una fila. Compara «cada turno» contra «solo si se rompe»: la misma caza con una fracción del cómputo.</td></tr></tbody></table>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="race" class="mode-section race-section" aria-labelledby="race-title">
+        <div class="intel-intro">
+          <p>MISMO MAPA, TRES AGENTES</p>
+          <h2 id="race-title">Carrera arácnida</h2>
+          <p>Los tres algoritmos exploran la misma ciudad al mismo tiempo, un anclaje por turno. Gana quien llega primero a MJ, pero fíjate también en cuánto mapa destapó cada uno y en el costo del camino que encontró.</p>
+        </div>
+        <div class="race-controls">
+          <button id="race-start" class="primary-action" type="button">¡Arrancar carrera!</button>
+          <button id="race-reset" class="benchmark-action" type="button">Reiniciar</button>
+          <button id="race-new-map" class="benchmark-action" type="button">Nueva ciudad aleatoria</button>
+          <label class="speed-control"><span>Velocidad</span><input id="race-speed" type="range" min="1" max="100" value="35" /></label>
+        </div>
+        <div class="race-grid" id="race-grid"></div>
+      </section>
+
+      <section id="tournament" class="mode-section" aria-labelledby="tournament-title">
+        <div class="intel-intro">
+          <p>RESULTADOS · ESTADÍSTICA HONESTA</p>
+          <h2 id="tournament-title">Torneo de Nueva York</h2>
+          <p>Genera N ciudades aleatorias distintas y corre DFS, BFS y A* en cada una. Al final promedia todo: una sola ciudad puede engañar; veinte, no tanto. Los algoritmos son deterministas: misma semilla, mismos números; cambia la semilla para otro informe.</p>
+        </div>
+        <div class="race-controls">
+          <button id="tournament-start" class="primary-action" type="button">Correr torneo</button>
+          <label class="field inline"><span>Ciudades</span><select id="tournament-count"><option>10</option><option selected>20</option><option>50</option></select></label>
+          <label class="field inline"><span>Semilla</span><input id="tournament-seed" type="number" value="1337" /></label>
+          <label class="option-row"><input id="tournament-rubble" type="checkbox" checked /> Con bombas</label>
+          <strong id="tournament-status" class="mode-status">Listo.</strong>
+        </div>
+        <div class="results-sheet tournament-sheet">
           <div class="table-wrap">
             <table>
-              <thead>
-                <tr>
-                  <th>Algoritmo</th>
-                  <th>Nodos expandidos<br /><small>prom.</small></th>
-                  <th>Costo solución<br /><small>prom.</small></th>
-                  <th>Tiempo<br /><small>ms</small></th>
-                  <th>Veredicto</th>
-                </tr>
-              </thead>
-              <tbody id="results-body">
-                <tr><th>DFS</th><td data-label="Nodos prom.">···</td><td data-label="Costo prom.">···</td><td data-label="Tiempo">···</td><td data-label="Veredicto">Sin medir</td></tr>
-                <tr><th>BFS</th><td data-label="Nodos prom.">···</td><td data-label="Costo prom.">···</td><td data-label="Tiempo">···</td><td data-label="Veredicto">Sin medir</td></tr>
-                <tr><th>A*</th><td data-label="Nodos prom.">···</td><td data-label="Costo prom.">···</td><td data-label="Tiempo">···</td><td data-label="Veredicto">Sin medir</td></tr>
-              </tbody>
+              <thead><tr><th>Algoritmo</th><th>Exp. media</th><th>Costo medio</th><th>Pasos</th><th>Mem. media</th><th>% óptimo</th><th>ms</th><th>Victorias</th></tr></thead>
+              <tbody id="tournament-body"><tr><td colspan="8">Sin datos aún.</td></tr></tbody>
             </table>
           </div>
-          <p id="final-verdict" class="final-verdict">
-            Ejecuta la prueba para generar una conclusión basada en tus propios datos.
-          </p>
+          <div id="tournament-bars" class="bars"></div>
+          <p id="tournament-verdict" class="final-verdict">Corre el torneo para ver qué deberías observar.</p>
         </div>
       </section>
     </main>
@@ -229,5 +323,6 @@
     </footer>
 
     <script src="app.js"></script>
+    <script src="modes.js"></script>
   </body>
 </html>

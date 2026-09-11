@@ -4,325 +4,99 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080d1c" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23ee3047' d='M32 3 54 17l-5 31-17 13-17-13-5-31L32 3Z'/%3E%3Cpath fill='%23fff' d='m17 20 13 8-10 15-6-4 3-19Zm30 0-13 8 10 15 6-4-3-19Z'/%3E%3C/svg%3E" />
-    <meta
-      name="description"
-      content="Juego educativo de Spider-Man para comparar DFS, BFS y A* en cinco escenarios de búsqueda."
-    />
-    <title>Spider-Man Search Lab</title>
+    <title>El Asedio de Oscorp - IA Minimax</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bangers&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bangers&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!--
-      THESIS: La frontera de búsqueda invade la ciudad y vuelve visible cada decisión; evita el dashboard de tarjetas uniformes.
-      OWN-WORLD: Tinta azul nocturna, rojo arácnido, amarillo de alerta, tramas de semitono y marcos angulares de cómic.
-      STORY: Elegir una misión, ejecutar un agente, observar su frontera y defender con datos cuál conviene.
-      FIRST VIEWPORT: Tablero urbano dominante a la izquierda; controles y estructura viva apilados a la derecha; ejecución primaria siempre visible.
-      FORM: Laboratorio-misión de cómic, dirección fijada por la referencia del usuario; seed key user-pinned-comic-lab.
-      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
-    -->
     <div class="halftone" aria-hidden="true"></div>
 
     <header class="topbar">
-      <a class="brand" href="#arena" aria-label="Ir al tablero de misión">
-        <svg class="brand-mask" viewBox="0 0 48 48" aria-hidden="true">
-          <path d="M24 3 40 13l-3 23-13 9-13-9-3-23L24 3Z" fill="currentColor" />
-          <path d="m12 15 10 5-7 11-4-3 1-13Zm24 0-10 5 7 11 4-3-1-13Z" fill="#f7f4e8" />
-          <path d="M24 5v37M10 15h28M14 35l10-13 10 13" fill="none" stroke="#101a36" stroke-width="1.4" />
-        </svg>
+      <div class="brand">
         <span>
-          <strong>SPIDER-MAN</strong>
-          <small>SEARCH LAB</small>
+          <strong>EL ASEDIO DE OSCORP</strong>
+          <small>MINIMAX + ALFA BETA</small>
         </span>
-      </a>
-
-      <nav class="chapter-nav" aria-label="Secciones del proyecto">
-        <a class="active" href="#arena">Misión</a>
-        <a href="#peas">PEAS</a>
-        <a href="#hunt">Cacería</a>
-        <a href="#race">Carrera</a>
-        <a href="#tournament">Torneo · Resultados</a>
-      </nav>
-
-      <div class="live-badge"><span></span> Simulación local</div>
+      </div>
+      <div class="live-badge"><span></span> Simulación en vivo</div>
     </header>
 
     <main>
       <section id="arena" class="mission-shell" aria-labelledby="mission-title">
         <div class="mission-head">
           <div>
-            <p class="location" id="scenario-kicker">MISIÓN 01 · AZOTEAS ABIERTAS</p>
-            <h1 id="mission-title">Rescate sobre Manhattan</h1>
+            <p class="location">JUEGO ADVERSARIAL EN GRAFOS</p>
+            <h1 id="mission-title">Spider-Man vs. Duende Verde</h1>
           </div>
-          <p class="mission-brief" id="scenario-description">
-            Rescata a Mary Jane balanceándote entre anclajes. Cada telaraña cuesta su distancia; observa cómo cada estrategia decide a qué azotea saltar.
+          <p class="mission-brief">
+            Spider-Man (MAX) busca atrapar al Duende, mientras el Duende (MIN) intenta escapar con MJ. 
+            La IA evalúa los turnos futuros usando Minimax y poda las ramas inútiles con Alfa-Beta.
           </p>
         </div>
 
         <div class="mission-grid">
           <div class="city-stage">
             <div class="metric-ribbon" aria-live="polite">
-              <div><span>Agente</span><strong id="metric-algorithm">A*</strong></div>
-              <div><span>Nodos</span><strong id="metric-nodes">0</strong></div>
-              <div><span>Costo</span><strong id="metric-cost">···</strong></div>
-              <div><span>Pasos</span><strong id="metric-steps">···</strong></div>
-              <div><span>Tiempo</span><strong id="metric-time">0.00 ms</strong></div>
+              <div><span>Turno Actual</span><strong id="metric-turn">Esperando...</strong></div>
+              <div><span>Ramas Podadas</span><strong id="metric-pruned">0</strong></div>
+              <div><span>Turnos Jugados</span><strong id="metric-turns">0</strong></div>
             </div>
 
             <div class="canvas-wrap">
-              <canvas id="city-canvas" width="1150" height="750" aria-label="Skyline de anclajes para la misión"></canvas>
+              <canvas id="city-canvas" width="1150" height="750"></canvas>
               <div class="canvas-caption">
                 <span><i class="legend-swatch normal"></i> Anclaje · telaraña = distancia</span>
-                <span><i class="legend-swatch rubble"></i> <span id="legend-rubble">Zona de bombas · costo ×3</span></span>
-                <span><i class="legend-swatch explored"></i> Explorado</span>
-                <span><i class="legend-swatch route"></i> Ruta final</span>
-                <span>👺 Duende · 🔴 MJ</span>
+                <span>👺 Duende (MIN) · 🔴 MJ (Meta) · 🕷️ Spider-Man (MAX)</span>
               </div>
-              <div id="mission-callout" class="mission-callout" aria-live="polite">
-                <strong>LISTO PARA PATRULLAR</strong>
-                <span>Selecciona un algoritmo y ejecuta la búsqueda.</span>
-              </div>
-            </div>
-
-            <div class="timeline" aria-label="Progreso de la búsqueda">
-              <span>INICIO</span>
-              <div class="timeline-track"><i id="timeline-progress"></i></div>
-              <span>MJ</span>
             </div>
           </div>
 
-          <aside class="control-rail" aria-label="Controles y explicación del algoritmo">
+          <aside class="control-rail">
             <section class="rail-section agent-panel">
               <div class="section-heading">
-                <h2>Elige al agente</h2>
-                <button class="info-dot" type="button" data-tip="Los tres reciben exactamente el mismo mapa y orden de vecinos." aria-label="Información sobre los agentes">i</button>
+                <h2>Control del Asedio</h2>
               </div>
-              <div class="segmented" role="group" aria-label="Algoritmo de búsqueda">
-                <button type="button" data-algorithm="dfs">DFS</button>
-                <button type="button" data-algorithm="bfs">BFS</button>
-                <button class="selected" type="button" data-algorithm="astar">A*</button>
-                <button type="button" data-algorithm="manual">Manual</button>
+              
+              <div class="segmented" role="group" aria-label="Modo de juego">
+                <button class="selected" type="button" data-mode="EvE">IA vs IA</button>
+                <button type="button" data-mode="PvE">Tú vs IA</button>
               </div>
-              <div class="algorithm-summary">
-                <span id="structure-chip">PRIORIDAD · menor f</span>
-                <p id="algorithm-explanation">Combina el costo recorrido con la distancia estimada hasta MJ.</p>
-              </div>
-              <label class="speed-control">
-                <span>Velocidad de exploración</span>
-                <input id="speed-range" type="range" min="1" max="100" value="68" />
+              
+              <label class="speed-control" style="margin-top: 1rem;">
+                <span>Límite de Profundidad Minimax: <b id="depth-val">4</b></span>
+                <input id="depth-range" type="range" min="1" max="6" value="4" />
               </label>
-              <div class="option-row" aria-label="Opciones de visualización">
-                <label><input id="opt-fog" type="checkbox" /> Niebla</label>
-                <label><input id="opt-graph" type="checkbox" /> Ver árbol de búsqueda</label>
-                <label><input id="opt-f" type="checkbox" /> Ver f=g+h</label>
-                <label><input id="opt-sound" type="checkbox" /> Sonido</label>
-              </div>
-              <div id="manual-controls" class="manual-controls" hidden>
-                <p>Flechas, WASD, controles táctiles o clic sobre un anclaje vecino.</p>
-                <div class="d-pad" aria-label="Controles manuales">
-                  <button type="button" data-move="up" aria-label="Mover arriba">↑</button>
-                  <button type="button" data-move="left" aria-label="Mover a la izquierda">←</button>
-                  <button type="button" data-move="down" aria-label="Mover abajo">↓</button>
-                  <button type="button" data-move="right" aria-label="Mover a la derecha">→</button>
-                </div>
-              </div>
-              <div class="action-pair">
-                <button id="run-button" class="primary-action" type="button">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z" /></svg>
-                  Ejecutar <span id="run-label">A*</span>
-                </button>
-                <button id="reset-button" class="icon-action" type="button" aria-label="Reiniciar misión">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" /></svg>
-                </button>
+
+              <label class="speed-control">
+                <span>Velocidad de turno automático (ms)</span>
+                <input id="speed-range" type="range" min="100" max="2000" value="800" step="100" />
+              </label>
+
+              <div class="action-pair" style="margin-top: 1.5rem;">
+                <button id="run-button" class="primary-action" type="button">Iniciar Asedio</button>
+                <button id="reset-button" class="icon-action" type="button" aria-label="Reiniciar">↺</button>
               </div>
             </section>
 
             <section class="rail-section stats-panel">
               <div class="section-heading">
-                <h2>Estadísticas</h2>
-                <button class="info-dot" type="button" data-tip="Métricas del algoritmo activo. Se actualizan en vivo durante la exploración." aria-label="Información sobre estadísticas">i</button>
+                <h2>Reglas Matemáticas</h2>
               </div>
-              <div class="stats-grid" aria-live="polite">
-                <div><strong id="stat-expanded">0</strong><span>Nodos expandidos</span></div>
-                <div><strong id="stat-generated">0</strong><span>Nodos generados</span></div>
-                <div><strong id="stat-frontier">0</strong><span>Frontera máxima (memoria)</span></div>
-                <div><strong id="stat-length">···</strong><span>Longitud del camino</span></div>
-                <div><strong id="stat-cost">···</strong><span>Costo del camino</span></div>
-                <div><strong id="stat-efficiency">···</strong><span>Eficiencia camino/expandidos</span></div>
-                <div><strong id="stat-branching">···</strong><span>Factor de ramificación b*</span></div>
-                <div><strong id="stat-time">0.0 ms</strong><span>Tiempo de cómputo</span></div>
+              <div style="padding: 1rem; background: rgba(0,0,0,0.25); border-radius: 8px; font-size: 0.9rem; color: #a9b7d8;">
+                <p style="margin-bottom: 0.5rem; font-family: monospace; color: #fff;">Eval = Dist(Duende, MJ) - Dist(Spidey, Duende)</p>
+                <ul style="padding-left: 1rem; margin:0; line-height: 1.5;">
+                  <li style="margin-bottom: 0.25rem;"><strong>MAX (Spider-Man)</strong> maximiza el valor para acercarse al Duende (+1000 si atrapa).</li>
+                  <li><strong>MIN (Duende)</strong> minimiza el valor para acercarse a MJ y alejarse de Spidey (-1000 si escapa).</li>
+                </ul>
               </div>
-              <p id="stat-verdict" class="stat-verdict">Ejecuta un agente para ver el veredicto.</p>
-            </section>
-
-            <section class="rail-section terrain-panel">
-              <div class="section-heading">
-                <h2>Terreno</h2>
-                <button class="info-dot" type="button" data-tip="Las bombas del Duende multiplican el costo de las telarañas que las cruzan. BFS las ignora; A* las cuenta." aria-label="Información sobre terreno">i</button>
-              </div>
-              <select id="terrain-select" aria-label="Tipo de terreno">
-                <option value="on" selected>Con bombas calabaza — cruzar cuesta más</option>
-                <option value="off">Sin bombas — solo distancia</option>
-              </select>
-              <label class="speed-control rubble-control">
-                <span>Costo en zona de bombas <b id="rubble-value">×3</b></span>
-                <input id="rubble-range" type="range" min="2" max="6" value="3" />
-              </label>
-              <p id="terrain-note" class="terrain-note"></p>
-            </section>
-
-            <section class="rail-section scenario-panel">
-              <div class="section-heading"><h2>Escenario</h2><span id="scenario-count">1 / 5</span></div>
-              <select id="scenario-select" aria-label="Seleccionar escenario"></select>
-              <div class="scenario-nav">
-                <button id="previous-scenario" type="button" aria-label="Escenario anterior">←</button>
-                <button id="next-scenario" type="button">Siguiente misión →</button>
-              </div>
-            </section>
-
-            <section class="rail-section frontier-panel">
-              <div class="section-heading">
-                <h2>Frontera en vivo</h2>
-                <span id="frontier-kind">COLA DE PRIORIDAD</span>
-              </div>
-              <div class="frontier-head"><span>NODO</span><span id="frontier-columns">g · h · f</span></div>
-              <ol id="frontier-list" class="frontier-list">
-                <li class="empty-frontier">La estructura aparecerá al ejecutar.</li>
-              </ol>
-            </section>
-
-            <section class="rail-section code-panel">
-              <div class="section-heading"><h2>El algoritmo, línea por línea</h2><span id="code-step-label">EN ESPERA</span></div>
-              <ol id="pseudocode" class="pseudocode" aria-label="Pseudocódigo del algoritmo"></ol>
+              <p id="stat-verdict" class="stat-verdict" style="margin-top: 1rem;">Configura la profundidad y ejecuta el algoritmo.</p>
             </section>
           </aside>
-        </div>
-      </section>
-
-      <section id="peas" class="intel-section" aria-labelledby="peas-title">
-        <div class="intel-intro">
-          <p>MODELO DEL AGENTE</p>
-          <h2 id="peas-title">PEAS del rescate arácnido</h2>
-          <p>El agente conoce el grafo completo de anclajes. El entorno es discreto, determinista, estático y totalmente observable.</p>
-        </div>
-        <div class="peas-grid">
-          <article><b>P</b><h3>Rendimiento</h3><p>Rescatar a MJ, minimizar la distancia total recorrida y reducir los anclajes expandidos.</p></article>
-          <article><b>E</b><h3>Entorno</h3><p>Skyline de Manhattan: anclajes en azoteas, fachadas y antenas, telarañas posibles entre ellos, zonas de bombas calabaza y MJ cautiva por el Duende Verde.</p></article>
-          <article><b>A</b><h3>Actuadores</h3><p>Lanzar una telaraña a cualquier anclaje conectado con el actual y balancearse hasta él.</p></article>
-          <article><b>S</b><h3>Sensores</h3><p>Anclaje actual, posición de MJ, telarañas disponibles, su longitud y si cruzan una zona de bombas.</p></article>
-        </div>
-
-        <div class="model-strip" aria-label="Modelado del problema de búsqueda">
-          <div><span>ESTADO</span><strong>Anclaje actual (nodo del grafo)</strong></div>
-          <div><span>ACCIONES</span><strong>Saltar a un anclaje vecino</strong></div>
-          <div><span>COSTO</span><strong>Distancia · ×k en zona de bombas</strong></div>
-          <div><span>HEURÍSTICA</span><strong>Distancia en línea recta</strong></div>
-        </div>
-      </section>
-
-      <section id="hunt" class="mode-section" aria-labelledby="hunt-title">
-        <div class="intel-intro">
-          <p>PROBLEMA DINÁMICO</p>
-          <h2 id="hunt-title">Cacería: el Duende huye con MJ</h2>
-          <p>Aquí la meta se mueve. El Duende Verde salta de azotea en azotea con MJ y el plan de Spider-Man queda obsoleto: hay que replanificar. Es el salto del problema estático al dinámico.</p>
-        </div>
-        <div class="mode-grid">
-          <div class="mode-stage">
-            <div class="metric-ribbon">
-              <div><span>Turno</span><strong id="hunt-turn">0</strong></div>
-              <div><span>Replanificaciones</span><strong id="hunt-replans">0</strong></div>
-              <div><span>Nodos totales</span><strong id="hunt-nodes">0</strong></div>
-              <div><span>Distancia</span><strong id="hunt-distance">···</strong></div>
-              <div><span>Capturas</span><strong id="hunt-captures">0</strong></div>
-            </div>
-            <canvas id="hunt-canvas" width="1150" height="750" aria-label="Mapa de la cacería"></canvas>
-            <div id="hunt-status" class="mode-status">Pulsa «Iniciar cacería».</div>
-          </div>
-          <aside class="mode-rail">
-            <section class="rail-section">
-              <div class="section-heading"><h2>Configuración</h2></div>
-              <div class="segmented" role="group" aria-label="Algoritmo de la cacería">
-                <button type="button" data-hunt-algorithm="dfs">DFS</button>
-                <button type="button" data-hunt-algorithm="bfs">BFS</button>
-                <button class="selected" type="button" data-hunt-algorithm="astar">A*</button>
-              </div>
-              <label class="field"><span>Comportamiento del Duende</span>
-                <select id="hunt-behavior"><option value="flee" selected>Huye de Spider-Man</option><option value="random">Se mueve al azar</option><option value="still">Se queda quieto</option></select></label>
-              <label class="field"><span>Estrategia de replanificación</span>
-                <select id="hunt-strategy"><option value="broken" selected>Replanificar solo si el plan se rompe</option><option value="always">Replanificar cada turno</option></select></label>
-              <label class="field"><span>Ritmo Spider-Man : Duende</span>
-                <select id="hunt-ratio"><option value="1">1 : 1</option><option value="2" selected>2 : 1</option><option value="3">3 : 1</option></select></label>
-              <label class="speed-control"><span>Velocidad</span><input id="hunt-speed" type="range" min="1" max="20" value="5" /></label>
-              <label class="option-row"><input id="hunt-show-explored" type="checkbox" checked /> Ver nodos explorados</label>
-              <div class="action-pair">
-                <button id="hunt-start" class="primary-action" type="button">Iniciar cacería</button>
-                <button id="hunt-reset" class="icon-action" type="button" aria-label="Reiniciar cacería">↺</button>
-              </div>
-            </section>
-            <section class="rail-section">
-              <div class="section-heading"><h2>Comparativa de estrategias</h2></div>
-              <div class="table-wrap dark-table">
-                <table><thead><tr><th>Agente</th><th>Estrategia</th><th>Replan.</th><th>Nodos</th><th>Turnos</th></tr></thead>
-                <tbody id="hunt-table"><tr><td colspan="5">Cada captura agrega una fila. Compara «cada turno» contra «solo si se rompe»: la misma caza con una fracción del cómputo.</td></tr></tbody></table>
-              </div>
-            </section>
-          </aside>
-        </div>
-      </section>
-
-      <section id="race" class="mode-section race-section" aria-labelledby="race-title">
-        <div class="intel-intro">
-          <p>MISMO MAPA, TRES AGENTES</p>
-          <h2 id="race-title">Carrera arácnida</h2>
-          <p>Los tres algoritmos exploran la misma ciudad al mismo tiempo, un anclaje por turno. Gana quien llega primero a MJ, pero fíjate también en cuánto mapa destapó cada uno y en el costo del camino que encontró.</p>
-        </div>
-        <div class="race-controls">
-          <button id="race-start" class="primary-action" type="button">¡Arrancar carrera!</button>
-          <button id="race-reset" class="benchmark-action" type="button">Reiniciar</button>
-          <button id="race-new-map" class="benchmark-action" type="button">Nueva ciudad aleatoria</button>
-          <label class="speed-control"><span>Velocidad</span><input id="race-speed" type="range" min="1" max="100" value="35" /></label>
-        </div>
-        <div class="race-grid" id="race-grid"></div>
-      </section>
-
-      <section id="tournament" class="mode-section" aria-labelledby="tournament-title">
-        <div class="intel-intro">
-          <p>RESULTADOS · ESTADÍSTICA HONESTA</p>
-          <h2 id="tournament-title">Torneo de Nueva York</h2>
-          <p>Genera N ciudades aleatorias distintas y corre DFS, BFS y A* en cada una. Al final promedia todo: una sola ciudad puede engañar; veinte, no tanto. Los algoritmos son deterministas: misma semilla, mismos números; cambia la semilla para otro informe.</p>
-        </div>
-        <div class="race-controls">
-          <button id="tournament-start" class="primary-action" type="button">Correr torneo</button>
-          <label class="field inline"><span>Ciudades</span><select id="tournament-count"><option>10</option><option selected>20</option><option>50</option></select></label>
-          <label class="field inline"><span>Semilla</span><input id="tournament-seed" type="number" value="1337" /></label>
-          <label class="option-row"><input id="tournament-rubble" type="checkbox" checked /> Con bombas</label>
-          <strong id="tournament-status" class="mode-status">Listo.</strong>
-        </div>
-        <div class="results-sheet tournament-sheet">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Algoritmo</th><th>Exp. media</th><th>Costo medio</th><th>Pasos</th><th>Mem. media</th><th>% óptimo</th><th>ms</th><th>Victorias</th></tr></thead>
-              <tbody id="tournament-body"><tr><td colspan="8">Sin datos aún.</td></tr></tbody>
-            </table>
-          </div>
-          <div id="tournament-bars" class="bars"></div>
-          <p id="tournament-verdict" class="final-verdict">Corre el torneo para ver qué deberías observar.</p>
         </div>
       </section>
     </main>
-
-    <footer>
-      <strong>SPIDER-MAN SEARCH LAB</strong>
-      <span>Proyecto de Agentes Inteligentes · DFS · BFS · A*</span>
-    </footer>
-
     <script src="app.js"></script>
-    <script src="modes.js"></script>
   </body>
 </html>

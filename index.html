@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080d1c" />
-    <title>El Asedio de Oscorp - IA Minimax</title>
+    <title>El Asedio de Oscorp · Minimax con poda Alfa-Beta</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bangers&display=swap" rel="stylesheet" />
@@ -17,86 +17,188 @@
       <div class="brand">
         <span>
           <strong>EL ASEDIO DE OSCORP</strong>
-          <small>MINIMAX + ALFA BETA</small>
+          <small>MINIMAX · PODA ALFA-BETA</small>
         </span>
       </div>
-      <div class="live-badge"><span></span> Simulación en vivo</div>
+      <nav class="chapter-nav" aria-label="Secciones">
+        <a class="active" href="#arena">Partida</a>
+        <a href="#experimentos">Experimentos</a>
+        <a href="#modelo">Modelo</a>
+      </nav>
+      <div class="live-badge"><span></span> Centro de mando</div>
     </header>
 
     <main>
-      <section id="arena" class="mission-shell" aria-labelledby="mission-title">
+      <section id="arena" class="mission-shell" data-turno="idle" aria-labelledby="mission-title">
         <div class="mission-head">
           <div>
-            <p class="location">JUEGO ADVERSARIAL EN GRAFOS</p>
+            <p class="location">JUEGO ADVERSARIAL DE SUMA CERO SOBRE GRAFO</p>
             <h1 id="mission-title">Spider-Man vs. Duende Verde</h1>
           </div>
           <p class="mission-brief">
-            Spider-Man (MAX) busca atrapar al Duende, mientras el Duende (MIN) intenta escapar con MJ. 
-            La IA evalúa los turnos futuros usando Minimax y poda las ramas inútiles con Alfa-Beta.
+            MAX (Spider-Man) gana si aterriza sobre el Duende. MIN (el Duende) gana si llega hasta
+            Mary Jane. Cada turno el agente de turno despliega su árbol de jugadas; Alfa-Beta corta
+            en rojo las ramas que el rival nunca permitiría.
           </p>
         </div>
 
         <div class="mission-grid">
           <div class="city-stage">
             <div class="metric-ribbon" aria-live="polite">
-              <div><span>Turno Actual</span><strong id="metric-turn">Esperando...</strong></div>
-              <div><span>Ramas Podadas</span><strong id="metric-pruned">0</strong></div>
-              <div><span>Turnos Jugados</span><strong id="metric-turns">0</strong></div>
+              <div><span>Turno actual</span><strong id="metric-turn">En espera</strong></div>
+              <div><span>Turnos jugados</span><strong id="metric-turns">0 / 40</strong></div>
+              <div><span>Podas acumuladas</span><strong id="metric-pruned">0</strong></div>
+              <div><span>Ciudad · semilla</span><strong id="seed-value">42</strong></div>
             </div>
 
             <div class="canvas-wrap">
-              <canvas id="city-canvas" width="1150" height="750"></canvas>
+              <canvas id="city-canvas" width="1150" height="750" aria-label="Skyline de Oscorp con el grafo de anclajes"></canvas>
               <div class="canvas-caption">
-                <span><i class="legend-swatch normal"></i> Anclaje · telaraña = distancia</span>
-                <span>👺 Duende (MIN) · 🔴 MJ (Meta) · 🕷️ Spider-Man (MAX)</span>
+                <span><i class="legend-swatch spidey"></i> Spider-Man · MAX</span>
+                <span><i class="legend-swatch goblin"></i> Duende Verde · MIN</span>
+                <span><i class="legend-swatch mj"></i> Mary Jane · meta</span>
+                <span><i class="legend-swatch scan"></i> Rama evaluada</span>
+                <span><i class="legend-swatch prune"></i> Rama podada</span>
               </div>
             </div>
           </div>
 
-          <aside class="control-rail">
+          <aside class="control-rail" aria-label="Controles y métricas">
             <section class="rail-section agent-panel">
               <div class="section-heading">
-                <h2>Control del Asedio</h2>
+                <h2>Control del asedio</h2>
+                <span id="turn-chip">EN ESPERA</span>
               </div>
-              
+
               <div class="segmented" role="group" aria-label="Modo de juego">
-                <button class="selected" type="button" data-mode="EvE">IA vs IA</button>
-                <button type="button" data-mode="PvE">Tú vs IA</button>
+                <button class="selected" type="button" data-mode="EvE">Agente vs Agente</button>
+                <button type="button" data-mode="PvE">Humano vs Agente</button>
               </div>
-              
-              <label class="speed-control" style="margin-top: 1rem;">
-                <span>Límite de Profundidad Minimax: <b id="depth-val">4</b></span>
+
+              <label class="field">
+                <span>Agente de MAX · Spider-Man</span>
+                <select id="agent-max">
+                  <option value="dfs">DFS cooperativo</option>
+                  <option value="bfs">BFS cooperativo</option>
+                  <option value="minimax">Minimax</option>
+                  <option value="alfabeta" selected>Alfa-Beta</option>
+                  <option value="aleatorio">Aleatorio</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Agente de MIN · Duende Verde</span>
+                <select id="agent-min">
+                  <option value="dfs">DFS cooperativo</option>
+                  <option value="bfs">BFS cooperativo</option>
+                  <option value="minimax">Minimax</option>
+                  <option value="alfabeta" selected>Alfa-Beta</option>
+                  <option value="aleatorio">Aleatorio</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Orden de sucesores (Alfa-Beta)</span>
+                <select id="order-select">
+                  <option value="natural">Natural</option>
+                  <option value="aleatorio">Aleatorio</option>
+                  <option value="mejor_primero" selected>Mejor primero</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Ventaja inicial</span>
+                <select id="advantage-select">
+                  <option value="spidey">Guardia cerrada · ventaja MAX</option>
+                  <option value="abierta" selected>Persecución abierta · equilibrada</option>
+                  <option value="duende">Duende desatado · ventaja MIN</option>
+                </select>
+              </label>
+
+              <label class="speed-control">
+                <span>Límite de profundidad <b id="depth-val">4</b></span>
                 <input id="depth-range" type="range" min="1" max="6" value="4" />
               </label>
 
               <label class="speed-control">
-                <span>Velocidad de turno automático (ms)</span>
-                <input id="speed-range" type="range" min="100" max="2000" value="800" step="100" />
+                <span>Ritmo de turno <b id="speed-val">700 ms</b></span>
+                <input id="speed-range" type="range" min="200" max="2000" value="700" step="100" />
               </label>
 
-              <div class="action-pair" style="margin-top: 1.5rem;">
-                <button id="run-button" class="primary-action" type="button">Iniciar Asedio</button>
-                <button id="reset-button" class="icon-action" type="button" aria-label="Reiniciar">↺</button>
+              <div class="action-pair">
+                <button id="run-button" class="primary-action" type="button">Iniciar asedio</button>
+                <button id="reset-button" class="icon-action" type="button" aria-label="Reiniciar partida">↺</button>
               </div>
+              <button id="new-city" class="benchmark-action" type="button">Nueva ciudad aleatoria</button>
             </section>
 
             <section class="rail-section stats-panel">
               <div class="section-heading">
-                <h2>Reglas Matemáticas</h2>
+                <h2>Métricas del último turno</h2>
+                <span id="stat-side">—</span>
               </div>
-              <div style="padding: 1rem; background: rgba(0,0,0,0.25); border-radius: 8px; font-size: 0.9rem; color: #a9b7d8;">
-                <p style="margin-bottom: 0.5rem; font-family: monospace; color: #fff;">Eval = Dist(Duende, MJ) - Dist(Spidey, Duende)</p>
-                <ul style="padding-left: 1rem; margin:0; line-height: 1.5;">
-                  <li style="margin-bottom: 0.25rem;"><strong>MAX (Spider-Man)</strong> maximiza el valor para acercarse al Duende (+1000 si atrapa).</li>
-                  <li><strong>MIN (Duende)</strong> minimiza el valor para acercarse a MJ y alejarse de Spidey (-1000 si escapa).</li>
-                </ul>
+              <div class="stats-grid">
+                <div><strong id="stat-evaluated">—</strong><span>Nodos visitados</span></div>
+                <div><strong id="stat-pruned">—</strong><span>Ramas podadas</span></div>
+                <div><strong id="stat-ms">—</strong><span>Tiempo de cómputo</span></div>
+                <div><strong id="stat-score">—</strong><span>Valor de la jugada</span></div>
               </div>
-              <p id="stat-verdict" class="stat-verdict" style="margin-top: 1rem;">Configura la profundidad y ejecuta el algoritmo.</p>
+              <p id="stat-verdict" class="stat-verdict">Elige los agentes y lanza el asedio.</p>
             </section>
           </aside>
         </div>
       </section>
+
+      <section id="experimentos" class="intel-section" aria-labelledby="exp-title">
+        <div class="intel-intro">
+          <p>BANCO DE PRUEBAS</p>
+          <h2 id="exp-title">Experimentos</h2>
+          <p>
+            Cada botón ejecuta la batería de verdad y escribe la tabla con sus números. Los detalles
+            de cada jugada se vuelcan además a la consola del navegador.
+          </p>
+        </div>
+        <div class="exp-actions">
+          <button id="exp-first" class="primary-action" type="button">(a) Costo de la primera jugada</button>
+          <button id="exp-order" class="benchmark-action" type="button">(b) Orden de sucesores</button>
+          <button id="exp-tournament" class="benchmark-action" type="button">(c) Torneos automáticos</button>
+        </div>
+        <div id="exp-output" class="exp-output">
+          <p class="exp-note">Aún no has lanzado ningún experimento.</p>
+        </div>
+      </section>
+
+      <section id="modelo" class="intel-section" aria-labelledby="modelo-title">
+        <div class="intel-intro">
+          <p>FORMALIZACIÓN</p>
+          <h2 id="modelo-title">El modelo del juego</h2>
+        </div>
+        <div class="peas-grid">
+          <article><b>1</b><h3>inicial()</h3><p>Estado de partida: posición de MAX, de MIN, turno y contador de plies.</p></article>
+          <article><b>2</b><h3>jugador(e)</h3><p>Devuelve MAX o MIN según a quién le toque mover.</p></article>
+          <article><b>3</b><h3>acciones(e)</h3><p>Anclajes vecinos legales del jugador de turno.</p></article>
+          <article><b>4</b><h3>resultado(e, a)</h3><p>Devuelve un estado nuevo. Nunca muta el que recibe.</p></article>
+          <article><b>5</b><h3>terminal(e)</h3><p>Captura, llegada a MJ o límite de turnos alcanzado.</p></article>
+          <article><b>6</b><h3>utilidad(e)</h3><p>+1 gana MAX, −1 gana MIN, 0 empate por límite.</p></article>
+        </div>
+        <p class="formula">Heurística de corte: Eval = dist(MIN, MJ) − dist(MAX, MIN)</p>
+        <ul class="rules">
+          <li>La heurística se comprime con <b>tanh</b> al rango ±0.9 para que una estimación nunca supere a una victoria real de utilidad ±1.</li>
+          <li><b>DFS</b> y <b>BFS</b> son cooperativos: buscan cualquier secuencia ganadora suponiendo que el rival se deja. Sirven de contraejemplo.</li>
+          <li><b>Minimax</b> y <b>Alfa-Beta</b> eligen siempre la misma jugada. La poda solo cambia cuántos nodos hay que visitar.</li>
+          <li>Alfa-Beta corta cuando <b>β ≤ α</b>. El orden de sucesores decide cuánto se poda.</li>
+        </ul>
+      </section>
     </main>
-    <script src="app.js"></script>
+
+    <footer>
+      <strong>EL ASEDIO DE OSCORP</strong>
+      <span>Proyecto de Agentes Inteligentes · Minimax · Poda Alfa-Beta</span>
+    </footer>
+
+    <script src="city.js?v=3"></script>
+    <script src="juego.js?v=3"></script>
+    <script src="agentes.js?v=3"></script>
+    <script src="app.js?v=3"></script>
   </body>
 </html>

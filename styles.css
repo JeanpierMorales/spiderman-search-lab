@@ -1282,3 +1282,120 @@ footer strong {
 @media (max-width: 960px) { .mode-grid { grid-template-columns: 1fr; } }
 
 #city-canvas, #hunt-canvas { cursor: crosshair; }
+
+/* =====================================================================
+   EL ASEDIO DE OSCORP · Minimax + poda Alfa-Beta
+   ===================================================================== */
+
+/* --- brillo de turno: azul para MAX (Spidey), verde para MIN (Duende) --- */
+#arena[data-turno="MAX"] { --turno: var(--cyan); }
+#arena[data-turno="MIN"] { --turno: var(--green); }
+#arena[data-turno="idle"] { --turno: var(--line); }
+
+#arena .canvas-wrap,
+#arena .agent-panel {
+  border: 2px solid var(--turno, var(--line));
+  border-radius: 14px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+#arena[data-turno="MAX"] .canvas-wrap,
+#arena[data-turno="MAX"] .agent-panel { box-shadow: 0 0 0 1px rgba(101, 218, 244, 0.25), 0 0 26px rgba(101, 218, 244, 0.28); }
+#arena[data-turno="MIN"] .canvas-wrap,
+#arena[data-turno="MIN"] .agent-panel { box-shadow: 0 0 0 1px rgba(99, 240, 180, 0.25), 0 0 26px rgba(99, 240, 180, 0.28); }
+
+#turn-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--turno, var(--line));
+  color: var(--turno, var(--muted));
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* --- leyenda del tablero --- */
+.legend-swatch.spidey { background: #ee3047; }
+.legend-swatch.goblin { background: #2ea86a; }
+.legend-swatch.mj { background: var(--yellow); }
+.legend-swatch.scan { background: var(--cyan); }
+.legend-swatch.prune { background: #ff3b52; }
+
+/* --- métricas y reglas --- */
+.stats-panel .section-heading > span {
+  color: var(--cyan);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+.stat-verdict[data-tono="ok"] { color: var(--green); }
+.stat-verdict[data-tono="mal"] { color: var(--red); }
+
+.formula {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(5, 8, 19, 0.85);
+  border: 1px solid var(--line);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.76rem;
+  color: var(--yellow);
+  text-align: center;
+}
+.rules {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.rules li { margin-bottom: 6px; }
+.rules b { color: var(--paper); }
+
+/* --- controles extra --- */
+#new-city { width: 100%; margin-top: 10px; }
+.control-rail .option-row { margin: 12px 0 4px; }
+.speed-control b { color: var(--yellow); }
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 28px clamp(18px, 6vw, 96px);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+footer strong { font-family: var(--display); letter-spacing: 0.06em; color: var(--paper); }
+.control-rail .field { display: grid; gap: 5px; margin: 14px 0 4px; font-size: 0.74rem; color: var(--muted); }
+.control-rail .field select {
+  width: 100%; padding: 9px 10px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--ink-3); color: var(--paper);
+  font: inherit; font-size: 0.85rem;
+}
+
+/* --- panel de experimentos --- */
+.exp-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.exp-actions button { width: auto; padding: 12px 20px; }
+.exp-output {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--ink-2);
+  overflow-x: auto;
+}
+.exp-output h3 {
+  margin: 0 0 14px;
+  font-family: var(--display);
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  color: var(--yellow);
+}
+.exp-note { margin: 12px 0 0; font-size: 0.76rem; line-height: 1.6; color: var(--muted); }
+.exp-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.exp-table th, .exp-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+.exp-table th { color: var(--cyan); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; }
+.exp-table td { color: var(--paper); }
+.exp-table tbody tr:hover { background: rgba(101, 218, 244, 0.07); }
+#modelo .formula { max-width: 640px; margin: 28px 0 18px; }
+#modelo .rules { max-width: 80ch; }
